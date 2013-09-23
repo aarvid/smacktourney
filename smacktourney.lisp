@@ -365,4 +365,4 @@
                       :if-does-not-exist :create)
      (let ((hash (cdr (assoc :password (read s)))))
        (ironclad:pbkdf2-check-password (babel:string-to-octets password)
-                                       hash))))))
+                                       hash)))))
