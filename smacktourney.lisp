@@ -39,15 +39,11 @@
     (if source (rec source nil) nil)))
 
 
-
 (defun pick-n-breadth (groups n)
   (let ((len (length groups)))
     (loop for i from 0 to (1- n)
-          collect (nth (floor i len) (nth (mod i len) groups) ))))
-
-
-
-
+          collect (nth (floor i len)
+                       (nth (mod i len) groups)))))
 
 
 (defun decode-planet-name (planet)
@@ -55,10 +51,6 @@
     (setf (second l)
           (local-time:parse-timestring (second l)))
     (values-list l)))
-
-
-
-
 
 
 (defun save-score-file (planet fb normalized-score)
@@ -73,17 +65,6 @@
                        round game-number normalized-score)
                  s)
           (terpri s))))))
-
-
-
-
-
-
-
-
-
-
-
 
 
 (defclass tourney ()
@@ -162,7 +143,7 @@
 (defmethod directory-feeb-source ((tourney-feeb tourney-feeb))
   (merge-pathnames
    (make-pathname :directory (list :relative *feeb-source-dir*))
-   (feeb-directory tourney-feeb)))
+   (directory-feeb tourney-feeb)))
 
 
 (defun get-tourney-users (tourney)
@@ -314,6 +295,17 @@
       (run-tourney-round tourney i))
     (save-scores-to-file tourney)))
 
+(defun tourney-ranking-list (tourney-name)
+  (let* ((tourney (make-instance 'tourney :name tourney-name))
+         (ranking (sort (copy-list (tourney-feebs tourney))
+                        #'> :key #'tourney-feeb-score)))
+    (mapcar (lambda (f)
+              (list (tourney-feeb-user f)
+                    (tourney-feeb-name f)
+                    (tourney-feeb-games f)
+                    (tourney-feeb-score f)))
+            ranking)))
+
 
 (defun print-tourney-ranking (tourney-name)
   (let* ((tourney (make-instance 'tourney :name tourney-name))
@@ -336,6 +328,7 @@
               max-games
               (tourney-feeb-games fb)
               (tourney-feeb-score fb)))))
+
 
 (defun create-tourney (name)
   (when (directory-exists-p (directory-tourney name))
@@ -366,3 +359,17 @@
      (let ((hash (cdr (assoc :password (read s)))))
        (ironclad:pbkdf2-check-password (babel:string-to-octets password)
                                        hash)))))
+
+(defun tourney-user-exists-p (tourney user )
+  (unless (directory-exists-p (directory-tourney tourney))
+    (error "Tourney ~a does not exist" tourney))
+  (directory-exists-p (directory-tourney-user tourney user)))
+
+(defun valid-user-name-p (user)
+  (and (< 0 (length user))
+       (<= (length user) 25)
+       (not (find-if #'(lambda (c)
+                         (or (not (standard-char-p c))
+                             (char= c #\Space)
+                             (char= c #\/)))
+                     user))))
